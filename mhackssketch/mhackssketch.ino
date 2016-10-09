@@ -10,7 +10,6 @@
 #include <WiFiServer.h>
 #include <WiFiUdp.h>
 
-//Alarm page: https://raw.githubusercontent.com/xyllian/wifibeacon/master/alarmpage.html
 
 #include <Adafruit_NeoPixel.h>
 
@@ -29,7 +28,7 @@ int active = 1;
 const char* ssid = "MhacksGuest";
 const char* pwd = "mhackshype";
 const char* host = "35.0.121.215:3000";
-const char* path = "/index.html";
+const char* path = "/index.html"; //To activate this body shall read 'alarm'
 
 
 void setup() {
@@ -37,7 +36,7 @@ void setup() {
   pinMode(button,INPUT_PULLUP);
   pinMode(buzzer,OUTPUT);
   leds.begin();
-  leds.setBrightness(10); //Increase to 255 for real
+  leds.setBrightness(10); //Increase to 255 for real brightness!
   leds.show();
   digitalWrite(buzzer,LOW);
 
@@ -64,20 +63,20 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
     nwmode = 0;
-    leds.setPixelColor(0,0,30,0);
+    leds.setPixelColor(0,0,30,0); //Show wifi success
     leds.show();
     
   } else {
     Serial.println("Starting in Serial mode. Send 'alarm' to start alarm. Press button to stop alarm.");
     nwmode = 1;
-    leds.setPixelColor(0,30,0,0);
+    leds.setPixelColor(0,30,0,0); //Show wifi fail
     leds.show();
   }
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (nwmode == 1) { //serial mode
+  if (nwmode == 1) { //serial mode: wait for used to send alarm command
     while (Serial.available() > 0) {
       delay(100);
       String input = Serial.readString();
@@ -88,7 +87,7 @@ void loop() {
     if (!digitalRead(button)) { //Button pressed
       state = 0;
     }
-  } else { //wifi mode!!!
+  } else { //wifi mode!!! Read webpage evry 5 seconds to see if it tells you to ring the alarm
 
     if ((millis()-tcheck) > 5000) {
       tcheck = millis();
@@ -102,11 +101,11 @@ void loop() {
       const int httpPort = 80;
       if (!client.connect(host, httpPort)) {
         Serial.println("connection failed");
-        leds.setPixelColor(1,30,0,0);
+        leds.setPixelColor(1,30,0,0);  //Show failed server connection
         leds.show();
         return;
-      } else {
-        leds.setPixelColor(1,0,30,0);
+      } else { 
+        leds.setPixelColor(1,0,30,0);  //Show successful server connection
         leds.show();
       }
     
@@ -117,10 +116,9 @@ void loop() {
   
       delay(100);
     
-      // Read all the lines of the reply from server and print them to Serial
       while (client.available()) {
         const String data = client.readStringUntil('\r');
-        if ((data.indexOf("alarm") >= 0) && active) { // alarm time!
+        if ((data.indexOf("alarm") >= 0) && active) { // has keyword alarm!
           state = 1;
         } else {
           state = 0;
@@ -131,20 +129,20 @@ void loop() {
   }
 
 
-  if ((state == 1) && ((millis()-tlast) >= blinktime) ) {
+  if ((state == 1) && ((millis()-tlast) >= blinktime) ) {  //Blink lights and acivate buzzer
     tlast = millis();
     leds.setPixelColor(ii %2,255,0,0);
     leds.setPixelColor(++ii %2,0,255,0);
     leds.show();
     digitalWrite(buzzer,HIGH);
-  } else if (state == 0) {
+  } else if (state == 0) {  //Stop lights and silence buzzer
     leds.setPixelColor(0,0,0,0);
     leds.setPixelColor(1,0,0,0);
     leds.show();
     digitalWrite(buzzer,LOW);
   }
 
-  if (!digitalRead(button)) {
+  if (!digitalRead(button)) {  //Buttun should stop the system!
     active = 0;
     state = 0;
   }
